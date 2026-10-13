@@ -3,7 +3,10 @@ from __future__ import annotations
 import cv2
 import numpy as np
 
-from app.schema import RedactionRegion, Style
+from app.schema import Category, RedactionRegion, Style
+
+LABELS = {Category.PRIVATE_CHAT: "Private conversation hidden", Category.SENSITIVE_DOCUMENT: "Sensitive document hidden",
+          Category.FINANCIAL: "Financial info hidden", Category.PII: "Personal info hidden"}
 
 
 def redact(frame: np.ndarray, regions: list[RedactionRegion]) -> np.ndarray:
@@ -18,6 +21,11 @@ def redact(frame: np.ndarray, regions: list[RedactionRegion]) -> np.ndarray:
         roi = out[y0:y1, x0:x1]
         if r.style == Style.BLACK:
             roi[:] = 0
+            label = LABELS.get(r.category)
+            if label and roi.shape[0] >= 60 and roi.shape[1] >= 360:  # label derives from the category only, never from content
+                sc = min(1.0, roi.shape[1] / 900)
+                (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, sc, 2)
+                cv2.putText(roi, label, ((roi.shape[1] - tw) // 2, (roi.shape[0] + th) // 2), cv2.FONT_HERSHEY_SIMPLEX, sc, (140, 140, 140), 2, cv2.LINE_AA)
         elif r.style == Style.PIXELATE:
             bh, bw = roi.shape[:2]
             cell = max(8, min(bh, bw) // 3)  # coarse enough that text is unrecoverable

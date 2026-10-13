@@ -31,7 +31,7 @@ def test_blur_and_pixelate_destroy_detail_but_not_black():
 
 def test_full_frame_and_edge_regions_do_not_crash():
     f = noisy()
-    assert redact(f, [RedactionRegion(Box(0, 0, 1, 1), Style.BLACK, Category.PII)]).max() == 0
+    assert redact(f, [RedactionRegion(Box(0, 0, 1, 1), Style.BLACK, Category.CREDENTIALS)]).max() == 0
     redact(f, [RedactionRegion(Box(0.99, 0.99, 1, 1), Style.BLUR, Category.PII)])
     assert np.array_equal(redact(f, []), f)
 
@@ -39,3 +39,12 @@ def test_full_frame_and_edge_regions_do_not_crash():
 def test_failsafe_frame_shape_and_no_source_content():
     ff = failsafe_frame((120, 300))
     assert ff.shape == (120, 300, 3)
+
+
+def test_black_mask_output_independent_of_source_pixels_even_with_label():
+    a, b = noisy(), np.random.default_rng(1).integers(0, 255, (200, 400, 3), dtype=np.uint8)
+    r = [RedactionRegion(Box(0, 0, 1, 1), Style.BLACK, Category.PRIVATE_CHAT)]
+    oa, ob = redact(a, r), redact(b, r)
+    assert np.array_equal(oa, ob)  # nothing of the source survives
+    big = np.zeros((400, 800, 3), np.uint8)
+    assert redact(big, r).max() > 0  # label drawn on large masks
