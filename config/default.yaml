@@ -10,7 +10,7 @@ output:
   fps: 15
   delay_ms: 250            # hold-back buffer; lets fast detections land before frames leave
   virtual_camera: auto     # auto | off | pyvirtualcam
-  device: null             # e.g. /dev/video10
+  device: /dev/video10     # v4l2loopback node (scripts/setup_virtual_camera.sh)
 pipeline:
   queue_size: 2
   fast_interval_ms: 250    # min gap between OCR passes
