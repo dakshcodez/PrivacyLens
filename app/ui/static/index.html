@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Privacy Lens</title>
+<style>
+:root{--bg:#0f1115;--card:#171a21;--line:#262b36;--fg:#e6e8ee;--mut:#8b93a5;--ok:#2fbf71;--warn:#f0b429;--bad:#ef4444;--acc:#6ea8fe}
+@media (prefers-color-scheme:light){:root{--bg:#f4f5f8;--card:#fff;--line:#dde0e8;--fg:#14171f;--mut:#5d6578}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,sans-serif}
+header{display:flex;gap:16px;align-items:center;padding:14px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+h1{font-size:18px;margin:0}main{display:grid;grid-template-columns:minmax(0,2fr) minmax(300px,1fr);gap:16px;padding:16px 20px}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
+.card h2{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:0 0 10px}
+#pill{padding:6px 12px;border-radius:999px;font-weight:600;font-size:13px}
+.ok{background:#12301f;color:var(--ok)}.warn{background:#3a2e0b;color:var(--warn)}.bad{background:#3b1414;color:var(--bad)}
+img#view{width:100%;border-radius:8px;background:#000;display:block}
+.row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);gap:10px}.row:last-child{border:0}
+select,button{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:inherit}
+button{cursor:pointer}button.on{background:var(--acc);color:#07101f;border-color:var(--acc)}
+.sw{position:relative;width:38px;height:22px}.sw input{opacity:0;width:0;height:0}.sw span{position:absolute;inset:0;background:var(--line);border-radius:22px;cursor:pointer;transition:.15s}
+.sw span:before{content:"";position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.15s}
+.sw input:checked+span{background:var(--ok)}.sw input:checked+span:before{transform:translateX(16px)}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.m b{display:block;font-size:20px}.m small{color:var(--mut)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}td,th{text-align:left;padding:4px 6px;border-bottom:1px solid var(--line)}th{color:var(--mut);font-weight:500}
+.hint{color:var(--mut);font-size:12px;margin-top:6px}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--mut);margin-right:6px}.dot.live{background:var(--ok);animation:p 1s infinite}@keyframes p{50%{opacity:.3}}
+</style></head><body>
+<header><h1>🛡️ Privacy Lens</h1><span id="pill" class="warn">starting…</span>
+<span id="gem" class="hint"></span><span id="act" class="hint"></span>
+<label style="margin-left:auto;display:flex;gap:8px;align-items:center">Protection <span class="sw"><input type="checkbox" id="protection"><span></span></span></label></header>
+<main>
+<section><div class="card"><h2>Outgoing (redacted) stream — this is what the virtual camera sends</h2><img id="view" src="/stream.mjpg" alt="redacted output"></div>
+<div class="card" style="margin-top:16px"><h2>Recent detections <small>(category, time, action — no content is stored)</small></h2>
+<table><thead><tr><th>Time</th><th>Category</th><th>Action</th><th>Source</th></tr></thead><tbody id="log"></tbody></table></div></section>
+<aside>
+<div class="card"><h2>Categories</h2><div id="cats"></div>
+<div class="row"><span>High-security mode<div class="hint">Keeps mandatory black masks on known secret formats (API keys, JWTs…) even if Credentials is OFF.</div></span><span class="sw"><input type="checkbox" id="hs"><span></span></span></div></div>
+<div class="card" style="margin-top:16px"><h2>Redaction</h2>
+<div class="row">Style <select id="style"><option value="black">Black mask</option><option value="pixelate">Pixelate</option><option value="blur">Blur</option></select></div>
+<div class="hint">Credentials are always masked in black.</div>
+<div class="row">Sensitivity <select id="sens"><option>low</option><option>medium</option><option>high</option></select></div>
+<div class="row"><span>Strict hold<div class="hint">Freeze output while the screen changed and hasn't been scanned yet.</div></span><span class="sw"><input type="checkbox" id="strict"><span></span></span></div></div>
+<div class="card" style="margin-top:16px"><h2>Capture</h2>
+<div class="row">Source <select id="backend"></select></div>
+<div class="row" id="scenerow">Demo scene <select id="scene"></select></div>
+<div class="row">Scope <select id="scope"><option value="screen">Entire screen</option><option value="window">Selected window</option></select></div>
+<div class="row" id="winrow" style="display:none">Window <select id="win"></select></div></div>
+<div class="card" style="margin-top:16px"><h2>Metrics (measured live)</h2><div class="grid" id="metrics"></div>
+<div class="hint" id="vcam"></div></div>
+</aside></main>
+<script>
+const CATS={credentials:"Credentials & passwords",private_chat:"Private conversations",pii:"Personal info (PII)",financial:"Financial info",sensitive_document:"Sensitive documents"};
+const $=id=>document.getElementById(id);let busy=0;
+const post=(u,b)=>{busy=Date.now();return fetch(u,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(b)})};
+$("cats").innerHTML=Object.entries(CATS).map(([k,v])=>`<div class="row">${v}<label class="sw"><input type="checkbox" data-cat="${k}"><span></span></label></div>`).join("");
+document.querySelectorAll("[data-cat]").forEach(e=>e.onchange=()=>post("/api/policy",{categories:{[e.dataset.cat]:e.checked}}));
+$("protection").onchange=e=>post("/api/policy",{protection_enabled:e.target.checked});
+$("hs").onchange=e=>post("/api/policy",{high_security:e.target.checked});
+$("strict").onchange=e=>post("/api/policy",{strict_hold:e.target.checked});
+$("style").onchange=e=>post("/api/policy",{style:e.target.value});
+$("sens").onchange=e=>post("/api/policy",{sensitivity:e.target.value});
+$("scene").onchange=e=>post("/api/capture",{scene:e.target.value});
+$("backend").onchange=e=>post("/api/capture",{backend:e.target.value});
+$("scope").onchange=e=>{$("winrow").style.display=e.target.value==="window"?"":"none";post("/api/capture",{scope:e.target.value})};
+$("win").onchange=e=>post("/api/capture",{scope:"window",window:e.target.value});
+fetch("/api/windows").then(r=>r.json()).then(d=>{$("scene").innerHTML=d.scenes.map(s=>`<option>${s}</option>`).join("");
+ $("win").innerHTML=d.windows.map(w=>`<option value="${w.id}">${w.title.replace(/</g,"&lt;")}</option>`).join("")||"<option value=''>(none found)</option>";
+ $("backend").innerHTML=["grim","mss","synthetic"].map(s=>`<option>${s}</option>`).join("")});
+const PILL={protected:["ok","● PROTECTED"],degraded:["warn","● PROTECTED (Gemma offline: OCR/patterns only)"],unprotected:["bad","● UNPROTECTED — passing raw video"],
+ failsafe_capture:["bad","● FAIL-SAFE: capture lost — blank output"],failsafe_detector:["bad","● FAIL-SAFE: detector not ready — blank output"],starting:["warn","starting…"]};
+async function tick(){try{const s=await (await fetch("/api/status")).json();const [c,t]=PILL[s.protection]||["warn",s.protection];
+ $("pill").className=c;$("pill").textContent=t;
+ $("gem").innerHTML=`<span class="dot ${s.gemma.status==="inferring"?"live":""}"></span>Gemma (${s.gemma.model}, local): ${s.gemma.status}`;
+ $("act").textContent=`${s.active_regions} active redaction region(s)`;
+ if(Date.now()-busy>1500){const p=s.policy;$("protection").checked=p.protection_enabled;$("hs").checked=p.high_security;$("strict").checked=s.strict_hold;
+  $("style").value=p.style;$("sens").value=p.sensitivity;document.querySelectorAll("[data-cat]").forEach(e=>e.checked=p.categories[e.dataset.cat]);
+  if(s.source)$("backend").value=s.source==="file"?"grim":s.source;$("scenerow").style.display=s.source==="synthetic"?"":"none";if(s.scene&&document.activeElement!==$("scene"))$("scene").value=s.scene}
+ const m=s.metrics,f=v=>v==null?"–":v;
+ $("metrics").innerHTML=[["Capture FPS",m.capture_fps],["Output FPS",m.output_fps],["Gemma latency (ms)",f(m.gemma_ms)],["OCR pass (ms)",f(m.ocr_ms)],["End-to-end (ms)",f(m.e2e_ms)],["Active regions",s.active_regions],["Gemma ok / fail",m.gemma_ok+" / "+m.gemma_fail],["Dropped frames",m.dropped_frames]]
+  .map(([k,v])=>`<div class="m"><b>${v}</b><small>${k}</small></div>`).join("");
+ $("vcam").textContent="Virtual camera: "+s.virtual_camera;
+ $("log").innerHTML=m.log.map(l=>`<tr><td>${l.t}</td><td>${l.category}</td><td>${l.action}</td><td>${l.source}</td></tr>`).join("")||"<tr><td colspan=4 class=hint>none yet</td></tr>";
+}catch(e){$("pill").className="bad";$("pill").textContent="backend unreachable"}}
+setInterval(tick,700);tick();
+</script></body></html>
