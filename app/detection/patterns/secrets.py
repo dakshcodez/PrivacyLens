@@ -30,7 +30,7 @@ _FORMATS = [
     ("jwt", r"\beyJ[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{4,}\b", Category.CREDENTIALS, 0.96, True),
     ("bearer", r"(?i)\bbearer\s+[A-Za-z0-9._\-]{20,}", Category.CREDENTIALS, 0.9, True),
     ("url_credentials", r"(?i)\b[a-z][a-z0-9+.\-]*://[^\s/:@]+:[^\s/@]{3,}@", Category.CREDENTIALS, 0.93, True),
-    ("email", r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b", Category.PII, 0.9, False),
+    ("email", r"\b[A-Za-z0-9._%+\-]+ ?@ ?[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b", Category.PII, 0.9, False),
     ("phone", r"(?<![\w.])(?:\+?\d{1,3}[\s.\-]?)?(?:\(\d{2,4}\)|\d{2,4})[\s.\-]\d{3,4}[\s.\-]\d{3,4}(?![\w.])", Category.PII, 0.7, False),
     ("ssn", r"\b\d{3}-\d{2}-\d{4}\b", Category.PII, 0.85, False),
     ("iban", r"\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b", Category.FINANCIAL, 0.8, False),

@@ -27,7 +27,8 @@ def words_from_tsv(data: dict, w: int, h: int, scale: float, min_conf: int) -> l
             conf = float(data["conf"][i])
         except (TypeError, ValueError):
             conf = -1
-        if not t or conf < min_conf:
+        # long tokens get low tesseract confidence even when read well; keep them (patterns decide)
+        if not t or conf < (0 if len(t) >= 12 else min_conf):
             continue
         x, y, bw, bh = (data[k][i] / scale for k in ("left", "top", "width", "height"))
         box = Box.validated(x / w, y / h, (x + bw) / w, (y + bh) / h, min_size=0.0005)
@@ -88,7 +89,7 @@ class OcrDetector:
         scale = 1.0
         img = frame
         if w < self.upscale_w:
-            scale = min(2.0, self.upscale_w / w)
+            scale = 2.0
             img = cv2.resize(frame, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         if gray.mean() < 110:  # light-on-dark (terminals): tesseract prefers dark-on-light
