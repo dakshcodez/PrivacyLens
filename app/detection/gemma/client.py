@@ -37,7 +37,7 @@ def encode_frame(frame: np.ndarray, max_side: int) -> str:
 class GemmaDetector:
     name = "gemma"
 
-    def __init__(self, host="http://127.0.0.1:11434", model="gemma4:e2b", image_max_side=896, timeout_s=90,
+    def __init__(self, host="http://127.0.0.1:11434", model="gemma4:e2b", image_max_side=640, timeout_s=90,
                  num_predict=700, temperature=0.1, session=None):
         self.host, self.model, self.max_side = host.rstrip("/"), model, image_max_side
         self.timeout, self.num_predict, self.temperature = timeout_s, num_predict, temperature
