@@ -8,4 +8,4 @@ fi
 sudo modprobe -r v4l2loopback 2>/dev/null || true
 sudo modprobe v4l2loopback devices=1 video_nr=10 card_label="Privacy Lens" exclusive_caps=1
 v4l2-ctl --list-devices | grep -A1 "Privacy Lens"
-echo "Done. Start the app with: python -m app.main --device /dev/video10   (or set output.device in config)"
+echo "Done. Start the app: python -m app.main  (optionally set output.device: /dev/video10 in config/default.yaml)"
