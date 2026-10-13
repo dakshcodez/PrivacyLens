@@ -81,11 +81,16 @@ class Pipeline:
         self._stop.set()
         with self._jpeg_cv:
             self._jpeg_cv.notify_all()
+        deadline = time.time() + 3.0  # shared budget; workers are daemon threads so a stuck HTTP call can't block exit
         for t in self._threads:
-            t.join(timeout=3)
+            t.join(timeout=max(0.0, deadline - time.time()))
         if self.source:
             self.source.close()
         self.vcam.close()
+
+    @property
+    def stopping(self) -> bool:
+        return self._stop.is_set()
 
     def set_source(self, source: Source):
         old, self.source = self.source, source
