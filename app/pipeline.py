@@ -66,6 +66,7 @@ class Pipeline:
         self.protection_state = "starting"
         self.active_regions = 0
         self._out: np.ndarray | None = None
+        self._last_picked = 0.0
 
     # ---------------- lifecycle ----------------
     def start(self):
@@ -102,8 +103,6 @@ class Pipeline:
             try:
                 f = self.source.read()
                 with self._lock:
-                    if len(self._buf) == self._buf.maxlen:
-                        self.metrics.dropped_frames += 1  # bounded: oldest frame dropped
                     self._buf.append((t0, f))
                     self._latest = (t0, f)
                     self._last_capture, self._capture_error = t0, None
@@ -190,7 +189,13 @@ class Pipeline:
                 return None
             cutoff = time.time() - delay
             eligible = [x for x in self._buf if x[0] <= cutoff]
-            return eligible[-1] if eligible else None
+            if not eligible:
+                return None
+            pick = eligible[-1]
+            # frames captured since the last emitted one but skipped (bounded queue: always emit the freshest)
+            self.metrics.dropped_frames += sum(1 for x in eligible if self._last_picked < x[0] < pick[0])
+            self._last_picked = pick[0]
+            return pick
 
     def _health(self, now: float) -> str:
         if not self.engine.snapshot()["protection_enabled"]:

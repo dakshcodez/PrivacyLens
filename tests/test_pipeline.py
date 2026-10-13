@@ -157,7 +157,7 @@ def test_mask_survives_empty_scans_then_gemma_failure(make):
 
 def test_bounded_buffer_drops_frames_instead_of_growing(make):
     c = cfg()
-    c["output"]["delay_ms"] = 50
+    c["output"].update(delay_ms=50, fps=10)  # capture 40 fps vs output 10 fps
     p = make([], c)
     assert wait(lambda: p.metrics.dropped_frames > 0)
     assert len(p._buf) <= p._buf.maxlen
