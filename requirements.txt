@@ -1,0 +1,10 @@
+opencv-python-headless>=4.9
+numpy
+pytesseract
+pillow
+pyvirtualcam
+fastapi
+uvicorn
+pyyaml
+requests
+pytest

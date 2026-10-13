@@ -1,0 +1,50 @@
+# Privacy Lens default configuration
+capture:
+  backend: grim            # grim (Wayland) | mss (X11/Windows/macOS) | synthetic | file
+  fps: 15
+  scope: screen            # screen | window
+  window: null             # Hyprland window address when scope=window
+  file: null               # image/video path for backend=file
+  max_width: 1280          # frames are downscaled to this width at capture (0 = native)
+output:
+  fps: 15
+  delay_ms: 250            # hold-back buffer; lets fast detections land before frames leave
+  virtual_camera: auto     # auto | off | pyvirtualcam
+  device: null             # e.g. /dev/video10
+pipeline:
+  queue_size: 2
+  fast_interval_ms: 250    # min gap between OCR passes
+  gemma_interval_s: 4      # min gap between Gemma passes
+  gemma_force_interval_s: 30  # re-run even if the screen looks unchanged
+  change_threshold: 0.02   # mean abs diff (0..1) of 64x36 thumbnail that counts as "changed"
+  stale_scans_high_risk: 4 # successful scans without re-detection before a high-risk mask is dropped
+  stale_scans_normal: 2
+  max_age_s: 120           # hard expiry for any region not re-confirmed
+gemma:
+  enabled: true
+  runtime: ollama
+  host: http://127.0.0.1:11434
+  model: gemma4:e2b
+  image_max_side: 896
+  timeout_s: 90
+  num_predict: 700
+  temperature: 0.1
+ocr:
+  enabled: true
+  lang: eng
+  min_word_conf: 30
+  upscale_below_width: 1600
+policy:
+  protection_enabled: true
+  high_security: true      # keep mandatory masks for high-risk credential formats even if category is OFF
+  style: black             # blur | pixelate | black   (credentials are always black)
+  sensitivity: medium      # low | medium | high
+  categories:
+    credentials: true
+    private_chat: true
+    pii: true
+    financial: true
+    sensitive_document: true
+server:
+  host: 127.0.0.1
+  port: 8765
