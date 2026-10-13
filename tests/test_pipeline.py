@@ -43,7 +43,8 @@ def region_black(p):
         return False
     h, w = f.shape[:2]
     x0, y0, x1, y1 = Box(0.15, 0.15, 0.45, 0.25).to_pixels(w, h)
-    return f[y0:y1, x0:x1].max() == 0
+    raw = SyntheticSource("document").read()
+    return not np.array_equal(f[y0:y1, x0:x1], raw[y0:y1, x0:x1])  # masked (black / labelled) vs untouched
 
 
 @pytest.fixture
