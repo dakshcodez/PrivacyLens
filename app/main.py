@@ -55,7 +55,8 @@ def main():
     srv = cfg["server"]
     print(f"Privacy Lens dashboard: http://{srv['host']}:{srv['port']}")
     try:
-        uvicorn.run(create_app(pipe), host=srv["host"], port=srv["port"], log_level="warning")
+        uvicorn.run(create_app(pipe), host=srv["host"], port=srv["port"], log_level="warning",
+                    timeout_graceful_shutdown=2)  # open MJPEG streams never end on their own
     finally:
         pipe.stop()
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
@@ -61,11 +61,11 @@ def create_app(pipeline: Pipeline) -> FastAPI:
         return {"ok": True}
 
     @app.get("/stream.mjpg")
-    async def stream():
+    async def stream(request: Request):
         async def gen():
             seq = 0
             loop = asyncio.get_running_loop()
-            while True:
+            while not pipeline.stopping and not await request.is_disconnected():
                 seq, jpg = await loop.run_in_executor(None, pipeline.next_jpeg, seq, 1.0)
                 if jpg:
                     yield b"--f\r\nContent-Type: image/jpeg\r\nContent-Length: %d\r\n\r\n" % len(jpg) + jpg + b"\r\n"
